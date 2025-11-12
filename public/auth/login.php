@@ -62,7 +62,7 @@ $isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="/public/assets/js/face-init.js"></script>
+    <script src="assets/js/face-init.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -323,7 +323,7 @@ $isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
                         <div class="register-link">
                             <p class="mb-0">
                                 Don't have an account?
-                                <a href="register.php">Register here</a>
+                                <a href="register">Register here</a>
                             </p>
                         </div>
                     </div>

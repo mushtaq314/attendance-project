@@ -28,13 +28,13 @@
       try {
         const desc = await getDescriptorFromCam();
         // send to server for match
-        const res = await fetch('/api/match_descriptor.php', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({descriptor: Array.from(desc)})});
+        const res = await fetch('/attendance-project/api/match_descriptor.php', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({descriptor: Array.from(desc)})});
         const j = await res.json();
         if (j.match) {
           // if matched, programmatically login
           // create a form post to set session
           const f = document.createElement('form');
-          f.method = 'POST'; f.action = '/public/auth/verify_face.php';
+          f.method = 'POST'; f.action = '/attendance-project/public/auth/verify_face.php';
           const i = document.createElement('input'); i.type='hidden'; i.name='user_id'; i.value=j.user_id; f.appendChild(i);
           document.body.appendChild(f); f.submit();
         } else {
@@ -48,7 +48,7 @@
   window.captureDescriptorAndSend = async function(userId) {
     const descriptor = await getDescriptorFromCam();
     const body = { user_id: userId, descriptor: Array.from(descriptor) };
-    const r = await fetch('/api/save_descriptor.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const r = await fetch('/attendance-project/api/save_descriptor.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     return await r.json();
   }
 })();

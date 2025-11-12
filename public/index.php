@@ -141,7 +141,7 @@ $posts = db()->query("SELECT p.*, u.name FROM posts p JOIN users u ON u.id = p.u
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="auth/login.php">
+                        <a class="nav-link" href="employee/login">
                             <i class="fas fa-sign-in-alt me-1"></i>Employee Login
                         </a>
                     </li>

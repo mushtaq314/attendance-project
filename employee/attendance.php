@@ -4,7 +4,7 @@ $user = current_user();
 $rows = fetch_all("SELECT * FROM attendance WHERE employee_id={$user['id']} ORDER BY timestamp DESC LIMIT 200");
 ?>
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>My Attendance</title><link href="/assets/css/styles.css" rel="stylesheet"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head>
+<link href="assets/css/styles.css" rel="stylesheet">
 <body class="p-4">
 <div class="container">
   <h4>My Attendance</h4>

@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="/public/assets/js/face-init.js"></script>
+    <script src="assets/js/face-init.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -255,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </p>
                             <p class="mb-0">
                                 Already have an account?
-                                <a href="login.php">Login here</a>
+                                <a href="login">Login here</a>
                             </p>
                         </div>
                     </div>
@@ -311,7 +311,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (result.ok) {
                         status.innerHTML = '<div class="alert alert-success">Face captured successfully! Redirecting...</div>';
                         setTimeout(() => {
-                            window.location.href = '/public/auth/login.php?registered=1';
+                            window.location.href = 'login?registered=1';
                         }, 2000);
                     } else {
                         status.innerHTML = '<div class="alert alert-danger">Face capture failed.</div>';
