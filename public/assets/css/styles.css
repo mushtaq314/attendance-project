@@ -1,0 +1,10 @@
+/* Basic responsive & attractive styling - extend as needed */
+:root{--accent:#0b6efd;--muted:#666}
+body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;margin:0;padding:0;background:#f6f8fb;color:#222}
+.container{max-width:980px;margin:32px auto;padding:16px}
+.card{background:white;border-radius:12px;box-shadow:0 6px 18px rgba(11,24,60,0.06);padding:16px;margin-bottom:12px}
+header{background:linear-gradient(90deg,#0b6efd 0%,#4facfe 100%);color:white;padding:12px}
+button{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px}
+input,textarea{padding:8px;border-radius:8px;border:1px solid #ddd}
+.nav{display:flex;gap:12px}
+@media (max-width:600px){.container{padding:12px;margin:12px}}
