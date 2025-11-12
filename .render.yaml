@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: attendance-project
+    env: docker
+    plan: free
+    branch: main
+    autoDeploy: true
+    region: oregon
+    healthCheckPath: /
+
+databases:
+  - name: attendance_db
+    plan: free
