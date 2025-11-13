@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/functions.php';
 session_start();
-if (empty($_SESSION['tmp_admin_id'])) { header('Location: /auth/login.php'); exit; }
+if (empty($_SESSION['tmp_admin_id'])) { header('Location: /attendance-project/public/auth/login.php'); exit; }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $code = trim($_POST['code']);
     $stmt = db()->prepare('SELECT * FROM users WHERE id = ?');
@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($u && verify_totp($u['twofa_secret'], $code)) {
         $_SESSION['user_id'] = $u['id'];
         unset($_SESSION['tmp_admin_id']);
-        header('Location: /admin/index.php');
+        header('Location: /attendance-project/admin/index.php');
         exit;
     } else {
         $err = 'Invalid code';

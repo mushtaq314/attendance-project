@@ -1,6 +1,6 @@
 <?php
 session_start();
 session_destroy();
-header("Location: login.php");
+header("Location: /attendance-project/admin/login.php");
 exit();
 ?>

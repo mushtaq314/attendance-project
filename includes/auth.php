@@ -6,7 +6,7 @@ session_start();
 // Check role-based access
 function checkAuth($role) {
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] != $role) {
-        header("Location: ../{$role}/login.php");
+        header("Location: /attendance-project/{$role}/login.php");
         exit();
     }
 }
@@ -22,7 +22,7 @@ function current_user() {
 
 function require_login() {
     if (!isset($_SESSION['user_id'])) {
-        header('Location: /auth/login.php');
+        header('Location: /attendance-project/public/auth/login.php');
         exit;
     }
 }
@@ -30,7 +30,7 @@ function require_login() {
 function require_admin() {
     $u = current_user();
     if (!$u || $u['role'] !== 'admin') {
-        header('Location: /auth/login.php');
+        header('Location: /attendance-project/public/auth/login.php');
         exit;
     }
 }

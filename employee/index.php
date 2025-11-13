@@ -9,9 +9,9 @@ $posts = db()->query("SELECT p.*, u.name as author_name FROM posts p LEFT JOIN u
 <html>
 <head>
   <title>Employee Dashboard</title>
-  <link href="../public/assets/libs/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <script src="../public/assets/js/app.js"></script>
-  <script src="../public/assets/js/offline-sync.js"></script>
+  <link href="/attendance-project/public/assets/libs/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <script src="/attendance-project/public/assets/js/app.js"></script>
+  <script src="/attendance-project/public/assets/js/offline-sync.js"></script>
 </head>
 <body class="bg-light">
 <div class="container mt-4">
@@ -50,8 +50,8 @@ $posts = db()->query("SELECT p.*, u.name as author_name FROM posts p LEFT JOIN u
   <?php endif; ?>
 
   <footer class="mt-4 text-center">
-    <a href="profile.php" class="btn btn-outline-secondary">Profile</a>
-    <a href="logout.php" class="btn btn-danger ms-2">Logout</a>
+    <a href="/attendance-project/employee/profile.php" class="btn btn-outline-secondary">Profile</a>
+    <a href="/attendance-project/employee/logout.php" class="btn btn-danger ms-2">Logout</a>
   </footer>
 </div>
 

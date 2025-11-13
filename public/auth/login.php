@@ -6,63 +6,27 @@ session_start();
 $success = '';
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isEmployee) {
-    $email = trim($_POST['email']);
-    $pw = $_POST['password'];
 
-    $stmt = db()->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-    $stmt->execute([$email]);
-    $u = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($u && verify_password($pw, $u['password'])) {
 
-        // Check if user is approved
-        if ($u['approved'] != 1) {
-            $error = 'Your account is awaiting admin approval. Please contact your administrator.';
-        } else {
-            // Admin 2FA handling
-            if ($u['role'] === 'admin' && !empty($u['twofa_secret'])) {
-                $_SESSION['tmp_admin_id'] = $u['id'];
-                header('Location: /auth/admin_2fa.php');
-                exit;
-            }
-
-            // Save session data
-            $_SESSION['user_id'] = $u['id'];
-            $_SESSION['role'] = $u['role'];
-
-            // Redirect by role
-            if ($u['role'] === 'admin') {
-                header('Location: /admin/index.php');
-            } else {
-                header('Location: /employee/index.php');
-            }
-            exit;
-        }
-
-    } else {
-        $error = 'Invalid email or password!';
-    }
-}
 
 // Check for registration success message
 if (isset($_GET['registered'])) {
     $success = 'Registration successful! Your account is pending admin approval. You will be notified once approved.';
 }
 
-// Handle role-based display
-$isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo $isEmployee ? 'Employee Face Login' : 'Login'; ?> - Attendance System</title>
+    <title>Face Recognition Login - Attendance System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="assets/js/face-init.js"></script>
+    <script src="assets/js/face-init.js" defer></script>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -253,8 +217,8 @@ $isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
                 <div class="login-card">
                     <div class="login-header">
                         <i class="fas fa-sign-in-alt fa-3x mb-3"></i>
-                        <h2><?php echo $isEmployee ? 'Face Recognition Login' : 'Welcome Back'; ?></h2>
-                        <p><?php echo $isEmployee ? 'Use face recognition to sign in' : 'Sign in to your account'; ?></p>
+                        <h2>Face Recognition Login</h2>
+                        <p>Use face recognition to sign in</p>
                     </div>
                     <div class="login-body">
                         <?php if (!empty($error)): ?>
@@ -273,32 +237,7 @@ $isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
                             </div>
                         <?php endif; ?>
 
-                        <?php if (!$isEmployee): ?>
-                        <form method="post" id="loginForm">
-                            <div class="form-floating mb-3">
-                                <input type="email" name="email" id="email" class="form-control" placeholder="Email Address" required
-                                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-                                <label for="email">
-                                    <i class="fas fa-envelope me-2"></i>Email Address
-                                </label>
-                            </div>
 
-                            <div class="form-floating mb-4">
-                                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
-                                <label for="password">
-                                    <i class="fas fa-lock me-2"></i>Password
-                                </label>
-                            </div>
-
-                            <button type="submit" class="btn btn-login" id="loginBtn">
-                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                            </button>
-                        </form>
-
-                        <div class="divider">
-                            <span>or</span>
-                        </div>
-                        <?php endif; ?>
 
                         <div class="face-login-section">
                             <button type="button" class="btn btn-face-login" id="faceLoginBtn">
@@ -318,12 +257,23 @@ $isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
                                     <li><i class="fas fa-check"></i>Smile naturally for better recognition</li>
                                 </ul>
                             </div>
+
+                            <!-- Face Capture Elements -->
+                            <div id="faceCaptureSection" style="display: none; text-align: center; margin-top: 1rem;">
+                                <video id="faceVideo" width="320" height="240" autoplay style="border: 2px solid #FF6B6B; border-radius: 10px;"></video>
+                                <br>
+                                <button id="faceCaptureBtn" class="btn btn-primary mt-3">
+                                    <i class="fas fa-camera me-2"></i>Capture Face
+                                </button>
+                            </div>
+                            <canvas id="faceCanvas" width="640" height="480" style="display:none;"></canvas>
+                            <img id="faceSnapshot" alt="snapshot" style="display:none;"/>
                         </div>
 
                         <div class="register-link">
                             <p class="mb-0">
                                 Don't have an account?
-                                <a href="register">Register here</a>
+                                <a href="/attendance-project/public/auth/register.php">Register here</a>
                             </p>
                         </div>
                     </div>
@@ -334,54 +284,30 @@ $isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Form validation
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            const btn = document.getElementById('loginBtn');
-            const inputs = this.querySelectorAll('input[required]');
-
-            let isValid = true;
-            inputs.forEach(input => {
-                if (!input.checkValidity()) {
-                    input.classList.add('is-invalid');
-                    isValid = false;
-                } else {
-                    input.classList.remove('is-invalid');
-                }
-            });
-
-            if (!isValid) {
-                e.preventDefault();
-                return false;
-            }
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
-        });
-
-        // Remove invalid class on input
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', function() {
-                if (this.checkValidity()) {
-                    this.classList.remove('is-invalid');
-                }
-            });
-        });
-
         // Face login functionality
         document.getElementById('faceLoginBtn').addEventListener('click', function() {
             const instructions = document.getElementById('faceInstructions');
+            const captureSection = document.getElementById('faceCaptureSection');
             const btn = this;
 
             if (instructions.style.display === 'none') {
                 instructions.style.display = 'block';
+                captureSection.style.display = 'block';
                 btn.innerHTML = '<i class="fas fa-times me-2"></i>Cancel Face Login';
                 btn.classList.remove('btn-face-login');
                 btn.classList.add('btn-secondary');
+
+                // Start camera when showing capture section
+                startCamera();
             } else {
                 instructions.style.display = 'none';
+                captureSection.style.display = 'none';
                 btn.innerHTML = '<i class="fas fa-camera me-2"></i>Login with Face Recognition';
                 btn.classList.remove('btn-secondary');
                 btn.classList.add('btn-face-login');
+
+                // Stop camera when hiding capture section
+                stopCamera();
             }
         });
 
@@ -392,6 +318,63 @@ $isEmployee = isset($_GET['role']) && $_GET['role'] === 'employee';
                 successAlert.style.display = 'none';
             }
         }, 5000);
+
+        // Face capture functionality
+        let stream = null;
+        const faceVideo = document.getElementById('faceVideo');
+        const faceCanvas = document.getElementById('faceCanvas');
+        const faceSnapshotImg = document.getElementById('faceSnapshot');
+        const faceCaptureBtn = document.getElementById('faceCaptureBtn');
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(newStream => {
+                stream = newStream;
+                faceVideo.srcObject = stream;
+                faceVideo.play();
+            })
+            .catch(err => {
+                console.error("Error accessing camera: ", err);
+                alert("Cannot access camera. Please check permissions and that you are on HTTPS.");
+            });
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                faceVideo.srcObject = null;
+            }
+        }
+
+        faceCaptureBtn.addEventListener('click', () => {
+            if (!stream) {
+                alert('Camera not active. Please try again.');
+                return;
+            }
+
+            const context = faceCanvas.getContext('2d');
+            context.drawImage(faceVideo, 0, 0, faceCanvas.width, faceCanvas.height);
+            // Get image data
+            const imageData = faceCanvas.toDataURL('image/png');
+            faceSnapshotImg.src = imageData;
+
+            // Now send this imageData to your server via AJAX or fetch:
+            fetch('/attendance-project/public/api/save_face.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("Server response:", data);
+                alert('Face captured and uploaded!');
+            })
+            .catch(err => {
+                console.error("Upload error:", err);
+                alert('Failed to upload image.');
+            });
+        });
     </script>
 </body>
 </html>

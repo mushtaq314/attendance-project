@@ -11,7 +11,7 @@ if (!empty($_POST['user_id'])) {
         $_SESSION['user_id'] = $user_id;
         $_SESSION['role'] = $user['role'];
         unset($_SESSION['tmp_user_id']); // Clear temporary user ID
-        header('Location: /' . ($user['role'] == 'admin' ? 'admin' : 'employee') . '/index.php');
+        header('Location: /attendance-project/' . ($user['role'] == 'admin' ? 'admin' : 'employee') . '/index.php');
         exit;
     }
 } elseif (isset($_SESSION['tmp_user_id'])) {
@@ -29,9 +29,9 @@ if (!empty($_POST['user_id'])) {
         $_SESSION['user_id'] = $user_id;
         $_SESSION['role'] = $user['role'];
         unset($_SESSION['tmp_user_id']); // Clear temporary user ID
-        header('Location: /employee/index.php');
+        header('Location: /attendance-project/employee/index.php');
         exit;
     }
 }
-header('Location: /public/auth/login.php');
+header('Location: /attendance-project/public/auth/login.php');
 exit;

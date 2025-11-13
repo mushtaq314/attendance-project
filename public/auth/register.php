@@ -18,8 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Check if email already exists
         $stmt = db()->prepare('SELECT id FROM users WHERE email = ?');
         $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            $error = "Email address is already registered.";
+        $existing_user = $stmt->fetch();
+        if ($existing_user) {
+            // Check if user has face descriptor set up
+            if (!empty($existing_user['face_descriptor'])) {
+                $error = "Email address is already registered and face recognition is set up.";
+            } else {
+                // Allow face setup for existing user without face
+                $user_id = $existing_user['id'];
+                $face_capture = true;
+                $success = "Email already registered. Please set up your face recognition.";
+            }
         } else {
             try {
                 $stmt = db()->prepare('INSERT INTO users (name,email,password,role,approved) VALUES (?,?,?,?,?)');
@@ -43,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="assets/js/face-init.js"></script>
+    <script src="assets/js/face-init.js" defer></script>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -215,6 +224,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <i class="fas fa-camera me-2"></i>Capture Face
                                 </button>
                                 <div id="faceCaptureStatus" class="mt-3"></div>
+
+                                <!-- Face Capture Elements -->
+                                <div id="regFaceCaptureSection" style="display: none; text-align: center; margin-top: 1rem;">
+                                    <video id="regFaceVideo" width="320" height="240" autoplay style="border: 2px solid #FF6B6B; border-radius: 10px;"></video>
+                                    <br>
+                                    <button id="regFaceCaptureBtn" class="btn btn-primary mt-3">
+                                        <i class="fas fa-camera me-2"></i>Capture Face
+                                    </button>
+                                </div>
+                                <canvas id="regFaceCanvas" width="640" height="480" style="display:none;"></canvas>
+                                <img id="regFaceSnapshot" alt="snapshot" style="display:none;"/>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if (!isset($face_capture) || !$face_capture): ?>
+                            <div class="mb-4">
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Face recognition will be set up after registration and admin approval.
+                                </p>
                             </div>
                         <?php endif; ?>
 
@@ -255,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </p>
                             <p class="mb-0">
                                 Already have an account?
-                                <a href="login">Login here</a>
+                                <a href="/attendance-project/public/auth/login.php">Login here</a>
                             </p>
                         </div>
                     </div>
@@ -303,24 +332,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Face capture for registration
         const captureBtn = document.getElementById('captureFaceBtn');
         if (captureBtn) {
-            captureBtn.addEventListener('click', async function() {
+            captureBtn.addEventListener('click', function() {
+                const captureSection = document.getElementById('regFaceCaptureSection');
                 const status = document.getElementById('faceCaptureStatus');
-                status.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Capturing face...';
-                try {
-                    const result = await window.captureDescriptorAndSend(<?php echo isset($user_id) ? $user_id : 'null'; ?>);
-                    if (result.ok) {
-                        status.innerHTML = '<div class="alert alert-success">Face captured successfully! Redirecting...</div>';
-                        setTimeout(() => {
-                            window.location.href = 'login?registered=1';
-                        }, 2000);
-                    } else {
-                        status.innerHTML = '<div class="alert alert-danger">Face capture failed.</div>';
-                    }
-                } catch (e) {
-                    status.innerHTML = '<div class="alert alert-danger">Error: ' + e.message + '</div>';
+
+                if (captureSection.style.display === 'none') {
+                    captureSection.style.display = 'block';
+                    this.innerHTML = '<i class="fas fa-times me-2"></i>Cancel Capture';
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-secondary');
+
+                    // Start camera when showing capture section
+                    startRegCamera();
+                } else {
+                    captureSection.style.display = 'none';
+                    this.innerHTML = '<i class="fas fa-camera me-2"></i>Capture Face';
+                    this.classList.remove('btn-secondary');
+                    this.classList.add('btn-primary');
+
+                    // Stop camera when hiding capture section
+                    stopRegCamera();
                 }
             });
         }
+
+        // Additional face capture functionality
+        let regStream = null;
+        const regFaceVideo = document.getElementById('regFaceVideo');
+        const regFaceCanvas = document.getElementById('regFaceCanvas');
+        const regFaceSnapshotImg = document.getElementById('regFaceSnapshot');
+        const regFaceCaptureBtn = document.getElementById('regFaceCaptureBtn');
+
+        function startRegCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(newStream => {
+                regStream = newStream;
+                regFaceVideo.srcObject = regStream;
+                regFaceVideo.play();
+            })
+            .catch(err => {
+                console.error("Error accessing camera: ", err);
+                alert("Cannot access camera. Please check permissions and that you are on HTTPS.");
+            });
+        }
+
+        function stopRegCamera() {
+            if (regStream) {
+                regStream.getTracks().forEach(track => track.stop());
+                regStream = null;
+                regFaceVideo.srcObject = null;
+            }
+        }
+
+        regFaceCaptureBtn.addEventListener('click', () => {
+            if (!regStream) {
+                alert('Camera not active. Please try again.');
+                return;
+            }
+
+            const context = regFaceCanvas.getContext('2d');
+            context.drawImage(regFaceVideo, 0, 0, regFaceCanvas.width, regFaceCanvas.height);
+            // Get image data
+            const imageData = regFaceCanvas.toDataURL('image/png');
+            regFaceSnapshotImg.src = imageData;
+
+            // Now send this imageData to your server via AJAX or fetch:
+            fetch('/attendance-project/public/api/save_face.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("Server response:", data);
+                alert('Face captured and uploaded!');
+            })
+            .catch(err => {
+                console.error("Upload error:", err);
+                alert('Failed to upload image.');
+            });
+        });
     </script>
 </body>
 </html>

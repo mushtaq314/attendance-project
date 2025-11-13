@@ -1,5 +1,5 @@
 <?php
 session_start();
-header('Location: ../public/auth/login.php?role=employee');
+header('Location: /attendance-project/public/auth/login.php?role=employee');
 exit;
 ?>

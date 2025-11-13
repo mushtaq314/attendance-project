@@ -1,0 +1,19 @@
+<?php
+// includes/config.php
+// Change these values for your environment
+return [
+'db' => [
+    'host'    => 'sql211.infinityfree.com',
+    'dbname'  => 'if0_40403019_attendance_project',
+    'user'    => 'if0_40403019',
+    'pass'    => 'Mussa123s',
+    'charset' => 'utf8mb4'
+],
+'base_url' => 'https://attendance-project.infinityfreeapp.com',
+];
+
+---------------------------------
+
+https://dash.infinityfree.com/accounts/if0_40403019
+
+

@@ -1,19 +1,15 @@
 # Enable URL rewriting
 RewriteEngine On
 
-# Set the RewriteBase to / if project is in root
-RewriteBase /
+# Set the RewriteBase to /attendance-project/public
+RewriteBase /attendance-project/public/
+
+# Add .php extension if file doesn't exist
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ $1.php [L]
 
 # Redirect all requests to index.php if file/folder doesn’t exist
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L]
-
-# Optional: hide .php extensions
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ $1.php [L]
-
-# Redirect .php requests to extensionless URLs
-RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s(.*)\.php\s [NC]
-RewriteRule ^ %1 [R=301,L]

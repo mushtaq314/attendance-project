@@ -9,5 +9,5 @@ return [
         'pass' => '',
         'charset' => 'utf8mb4'
     ],
-    'base_url' => 'http://localhost', // change to your domain
+    'base_url' => 'http://localhost/attendance-project/public', // change to your domain
 ];

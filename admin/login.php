@@ -23,13 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Check for 2FA
         if (!empty($admin['twofa_secret'])) {
             $_SESSION['tmp_admin_id'] = $admin['id'];
-            header('Location: /auth/admin_2fa.php');
+            header('Location: /attendance-project/public/auth/admin_2fa.php');
             exit;
         } else {
             // Success — store session
             $_SESSION['user_id'] = $admin['id'];
             $_SESSION['role'] = 'admin';
-            header('Location: index.php');
+            header('Location: /attendance-project/admin/index.php');
             exit;
         }
     }
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </form>
 
                         <div class="text-center mt-4">
-                            <a href="../public/index.php" class="text-decoration-none">
+                            <a href="/attendance-project/public/index.php" class="text-decoration-none">
                                 <i class="fas fa-arrow-left me-1"></i>Back to Home
                             </a>
                         </div>

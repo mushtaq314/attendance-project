@@ -11,7 +11,7 @@ $u = current_user();
 <p>Email: <?=htmlspecialchars($u['email'])?></p>
 <?php if (empty($u['face_descriptor'])): ?>
   <p>You haven't registered face yet. <button id="registerFaceBtn">Register Face</button></p>
-  <script src="/assets/js/face-init.js"></script>
+  <script src="/attendance-project/public/assets/js/face-init.js"></script>
   <script>
     document.getElementById('registerFaceBtn').addEventListener('click', async ()=>{
       try{

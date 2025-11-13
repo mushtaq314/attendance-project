@@ -136,7 +136,7 @@ if (isset($_GET['message'])) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white px-3" href="../public/index.php">
+                        <a class="nav-link text-white px-3" href="/attendance-project/public/index.php">
                             <i class="fas fa-globe me-1"></i>Public
                         </a>
                     </li>

@@ -3,10 +3,13 @@ require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/functions.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
-if (!$input || empty($input['descriptor'])) { http_response_code(400); exit; }
+if (!$input || empty($input['descriptor'])) { http_response_code(400); echo json_encode(['error'=>'invalid input']); exit; }
 $probe = $input['descriptor'];
 $threshold = 0.6; // adjust: smaller = stricter
-$stmt = db()->query('SELECT id, name, face_descriptor FROM users WHERE face_descriptor IS NOT NULL');
+
+// Only match approved users
+$stmt = db()->prepare('SELECT id, name, face_descriptor FROM users WHERE face_descriptor IS NOT NULL AND approved = 1');
+$stmt->execute();
 $best = null; $bestScore = PHP_FLOAT_MAX;
 while ($row = $stmt->fetch()) {
     $dbdesc = json_decode($row['face_descriptor'], true);
