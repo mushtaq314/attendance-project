@@ -52,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="assets/js/face-init.js" defer></script>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -356,6 +355,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }
 
+        // Load face-api models
+        Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewohacks/face-api.js@master/weights'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewohacks/face-api.js@master/weights'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewohacks/face-api.js@master/weights')
+        ]).then(() => {
+            console.log('Face API models loaded');
+        }).catch(err => {
+            console.error('Error loading face API models:', err);
+        });
+
         // Additional face capture functionality
         let regStream = null;
         const regFaceVideo = document.getElementById('regFaceVideo');
@@ -384,33 +394,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        regFaceCaptureBtn.addEventListener('click', () => {
+        regFaceCaptureBtn.addEventListener('click', async () => {
             if (!regStream) {
                 alert('Camera not active. Please try again.');
                 return;
             }
 
-            const context = regFaceCanvas.getContext('2d');
-            context.drawImage(regFaceVideo, 0, 0, regFaceCanvas.width, regFaceCanvas.height);
-            // Get image data
-            const imageData = regFaceCanvas.toDataURL('image/png');
-            regFaceSnapshotImg.src = imageData;
+            // Disable button during processing
+            regFaceCaptureBtn.disabled = true;
+            regFaceCaptureBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
 
-            // Now send this imageData to your server via AJAX or fetch:
-            fetch('/attendance-project/public/api/save_face.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData })
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log("Server response:", data);
-                alert('Face captured and uploaded!');
-            })
-            .catch(err => {
-                console.error("Upload error:", err);
-                alert('Failed to upload image.');
-            });
+            try {
+                // Detect face and get descriptor
+                const detection = await faceapi.detectSingleFace(regFaceVideo, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    alert('No face detected. Please ensure your face is clearly visible and try again.');
+                    regFaceCaptureBtn.disabled = false;
+                    regFaceCaptureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Capture Face';
+                    return;
+                }
+
+                // Save descriptor to server
+                const response = await fetch('/attendance-project/public/api/save_descriptor.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: <?php echo isset($user_id) ? $user_id : 'null'; ?>, descriptor: Array.from(detection.descriptor) })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    alert('Face captured and saved successfully! You can now login with face recognition.');
+                    window.location.href = '/attendance-project/public/auth/login.php?registered=1';
+                } else {
+                    alert('Failed to save face descriptor. Please try again.');
+                }
+
+            } catch (err) {
+                console.error('Face capture error:', err);
+                alert('Face capture failed. Please try again.');
+            } finally {
+                regFaceCaptureBtn.disabled = false;
+                regFaceCaptureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Capture Face';
+            }
         });
     </script>
 </body>

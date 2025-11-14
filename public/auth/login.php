@@ -26,7 +26,6 @@ if (isset($_GET['registered'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="assets/js/face-init.js" defer></script>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -284,6 +283,17 @@ if (isset($_GET['registered'])) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Load face-api models
+        Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights')
+        ]).then(() => {
+            console.log('Face API models loaded');
+        }).catch(err => {
+            console.error('Error loading face API models:', err);
+        });
+
         // Face login functionality
         document.getElementById('faceLoginBtn').addEventListener('click', function() {
             const instructions = document.getElementById('faceInstructions');
@@ -347,33 +357,74 @@ if (isset($_GET['registered'])) {
             }
         }
 
-        faceCaptureBtn.addEventListener('click', () => {
+        faceCaptureBtn.addEventListener('click', async () => {
             if (!stream) {
                 alert('Camera not active. Please try again.');
                 return;
             }
 
-            const context = faceCanvas.getContext('2d');
-            context.drawImage(faceVideo, 0, 0, faceCanvas.width, faceCanvas.height);
-            // Get image data
-            const imageData = faceCanvas.toDataURL('image/png');
-            faceSnapshotImg.src = imageData;
+            // Disable button during processing
+            faceCaptureBtn.disabled = true;
+            faceCaptureBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
 
-            // Now send this imageData to your server via AJAX or fetch:
-            fetch('/attendance-project/public/api/save_face.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData })
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log("Server response:", data);
-                alert('Face captured and uploaded!');
-            })
-            .catch(err => {
-                console.error("Upload error:", err);
-                alert('Failed to upload image.');
-            });
+            try {
+                // Detect face and get descriptor
+                const detection = await faceapi.detectSingleFace(faceVideo, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    alert('No face detected. Please ensure your face is clearly visible and try again.');
+                    faceCaptureBtn.disabled = false;
+                    faceCaptureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Capture Face';
+                    return;
+                }
+
+                // Fetch stored face descriptors
+                const response = await fetch('/attendance-project/public/api/fetch_descriptors.php');
+                const users = await response.json();
+
+                // Find matching user
+                let matchedUser = null;
+                let minDistance = Infinity;
+
+                for (const user of users) {
+                    if (user.descriptor) {
+                        const distance = faceapi.euclideanDistance(detection.descriptor, user.descriptor);
+                        if (distance < 0.6 && distance < minDistance) { // Threshold for matching
+                            minDistance = distance;
+                            matchedUser = user;
+                        }
+                    }
+                }
+
+                if (matchedUser) {
+                    // Login the user
+                    const loginResponse = await fetch('/attendance-project/public/api/accept_login.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: matchedUser.id })
+                    });
+
+                    const loginData = await loginResponse.json();
+
+                    if (loginData.success) {
+                        alert(`Welcome back, ${loginData.name}!`);
+                        window.location.href = '/attendance-project/employee/index.php';
+                    } else {
+                        alert('Login failed. Please try again.');
+                    }
+                } else {
+                    alert('Face not recognized. Please ensure you are registered or try again.');
+                }
+
+            } catch (err) {
+                console.error('Face recognition error:', err);
+                alert('Face recognition failed. Please try again.');
+            } finally {
+                faceCaptureBtn.disabled = false;
+                faceCaptureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Capture Face';
+            }
         });
     </script>
 </body>

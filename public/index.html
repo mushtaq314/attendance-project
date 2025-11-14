@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Face Login / Register</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 12px; }
+    video { width: 320px; height: auto; border: 1px solid #ddd; }
+    #controls { margin-top: 8px; }
+    input, button { padding: 8px; margin: 4px; }
+    #status { margin-top: 8px; color: green; }
+  </style>
+</head>
+<body>
+  <h2>Face Register & Login</h2>
+
+  <div>
+    <video id="video" autoplay muted></video>
+    <canvas id="canvas" style="display:none"></canvas>
+  </div>
+
+  <div id="controls">
+    <input type="text" id="name" placeholder="Full name (for register)">
+    <button id="btn-start">Start Camera</button>
+    <button id="btn-register">Register Face</button>
+    <button id="btn-login">Login with Face</button>
+  </div>
+
+  <div id="status"></div>
+
+  <!-- face-api.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const statusEl = document.getElementById('status');
+
+    let modelsLoaded = false;
+    let stream = null;
+
+    async function loadModels() {
+      statusEl.textContent = 'Loading models...';
+      // models should be placed in /models folder (see README)
+      // You can also load from a hosted URL if available.
+      const MODEL_URL = '/models';
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      modelsLoaded = true;
+      statusEl.textContent = 'Models loaded.';
+    }
+
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        statusEl.textContent = 'Camera started.';
+      } catch (e) {
+        statusEl.textContent = 'Camera error: ' + e.message;
+      }
+    }
+
+    document.getElementById('btn-start').addEventListener('click', async () => {
+      if (!modelsLoaded) await loadModels();
+      await startCamera();
+    });
+
+    // helper: capture current frame as base64
+    function captureFrame() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/png');
+    }
+
+    // register
+    document.getElementById('btn-register').addEventListener('click', async () => {
+      const name = document.getElementById('name').value.trim();
+      if (!name) { alert('Enter name'); return; }
+      statusEl.textContent = 'Detecting face...';
+      const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      if (!detection) {
+        statusEl.textContent = 'No face detected. Try again.';
+        return;
+      }
+      statusEl.textContent = 'Face detected. Preparing descriptor...';
+      const descriptor = Array.from(detection.descriptor); // float32 -> array
+      const imageData = captureFrame();
+
+      // send to server
+      statusEl.textContent = 'Sending to server...';
+      const res = await fetch('api/save_user.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, image: imageData, descriptor })
+      });
+      const j = await res.json();
+      if (j.success) {
+        statusEl.textContent = 'Registered successfully (id: ' + j.id + ').';
+      } else {
+        statusEl.textContent = 'Register failed: ' + (j.error || 'unknown');
+      }
+    });
+
+    // login
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      statusEl.textContent = 'Loading known faces...';
+      // fetch descriptors from server
+      const res = await fetch('api/fetch_descriptors.php');
+      const users = await res.json(); // [{id, name, descriptor: [...]}, ...]
+
+      if (!Array.isArray(users) || users.length === 0) {
+        statusEl.textContent = 'No registered users.';
+        return;
+      }
+
+      // build labeled descriptors for face-api
+      const labeledDescriptors = users.map(u => {
+        const floatDesc = new Float32Array(u.descriptor);
+        return new faceapi.LabeledFaceDescriptors(u.id.toString() + '|' + u.name, [floatDesc]);
+      });
+
+      const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55); // tolerance
+
+      statusEl.textContent = 'Detecting live face...';
+      const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      if (!detection) {
+        statusEl.textContent = 'No face detected. Try again.';
+        return;
+      }
+
+      const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+      if (bestMatch.label === 'unknown') {
+        statusEl.textContent = 'No match found.';
+        return;
+      }
+
+      // label is "id|name"
+      const parts = bestMatch.label.split('|');
+      const matchedId = parts[0];
+      const matchedName = parts[1];
+
+      statusEl.textContent = `Matched: ${matchedName} (id ${matchedId}), confidence ${bestMatch.distance.toFixed(3)}. Logging in...`;
+
+      // tell server to create session / accept login
+      const r2 = await fetch('api/accept_login.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: matchedId })
+      });
+      const j2 = await r2.json();
+      if (j2.success) {
+        statusEl.textContent = `Login successful. Welcome ${j2.name}`;
+        // redirect or update UI as needed
+      } else {
+        statusEl.textContent = 'Server login failed: ' + (j2.error || 'unknown');
+      }
+    });
+
+    // optional: auto-load models on page load
+    loadModels();
+  </script>
+</body>
+</html>

@@ -214,6 +214,7 @@ $users = fetch_all("SELECT * FROM users ORDER BY id DESC");
                         <tr>
                             <th><i class="fas fa-hashtag me-1"></i>ID</th>
                             <th><i class="fas fa-user me-1"></i>Name</th>
+                            <th><i class="fas fa-camera me-1"></i>Face Photo</th>
                             <th><i class="fas fa-envelope me-1"></i>Email</th>
                             <th><i class="fas fa-user-tag me-1"></i>Role</th>
                             <th><i class="fas fa-info-circle me-1"></i>Status</th>
@@ -231,6 +232,15 @@ $users = fetch_all("SELECT * FROM users ORDER BY id DESC");
                                         </div>
                                         <?= htmlspecialchars($u['name']) ?>
                                     </div>
+                                </td>
+                                <td>
+                                    <?php if (!empty($u['image_path']) && file_exists(__DIR__ . '/../storage/faces/' . basename($u['image_path']))): ?>
+                                        <img src="/attendance-project/storage/faces/<?= htmlspecialchars(basename($u['image_path'])) ?>" alt="Face Photo" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef;">
+                                    <?php else: ?>
+                                        <div style="width: 50px; height: 50px; border-radius: 8px; background: #f8f9fa; border: 2px solid #e9ecef; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-camera text-muted"></i>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                                 <td><?= htmlspecialchars($u['email']) ?></td>
                                 <td>

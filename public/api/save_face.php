@@ -1,4 +1,7 @@
 <?php
+header('Content-Type: application/json');
+require_once __DIR__ . '/../../includes/db.php';
+
 // Receive JSON
 $input = json_decode(file_get_contents('php://input'), true);
 if (!empty($input['image'])) {
