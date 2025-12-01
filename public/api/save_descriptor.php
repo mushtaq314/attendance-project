@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (!$data || !isset($data['user_id']) || !isset($data['descriptor'])) {
+if (!$data || !isset($data['user_id']) || !isset($data['descriptor']) || !isset($data['image'])) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid data']);
     exit;
@@ -19,10 +19,11 @@ if (!$data || !isset($data['user_id']) || !isset($data['descriptor'])) {
 
 $user_id = $data['user_id'];
 $descriptor = json_encode($data['descriptor']);
+$image = $data['image'];
 
 try {
-    $stmt = db()->prepare('UPDATE users SET face_descriptor = ? WHERE id = ?');
-    $stmt->execute([$descriptor, $user_id]);
+    $stmt = db()->prepare('UPDATE users SET face_descriptor = ?, face_image = ? WHERE id = ?');
+    $stmt->execute([$descriptor, $image, $user_id]);
 
     echo json_encode(['ok' => true]);
 } catch (Exception $e) {

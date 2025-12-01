@@ -13,6 +13,7 @@ approved TINYINT(1) DEFAULT 0,
 status ENUM('pending','approved','rejected','active') DEFAULT 'pending',
 twofa_secret VARCHAR(255) DEFAULT NULL,
 face_descriptor MEDIUMTEXT DEFAULT NULL,
+face_image MEDIUMTEXT DEFAULT NULL,
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

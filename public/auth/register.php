@@ -20,15 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
         $existing_user = $stmt->fetch();
         if ($existing_user) {
-            // Check if user has face descriptor set up
-            if (!empty($existing_user['face_descriptor'])) {
-                $error = "Email address is already registered and face recognition is set up.";
-            } else {
-                // Allow face setup for existing user without face
-                $user_id = $existing_user['id'];
-                $face_capture = true;
-                $success = "Email already registered. Please set up your face recognition.";
-            }
+            // Allow face setup/update for existing user
+            $user_id = $existing_user['id'];
+            $face_capture = true;
+            $success = "Email already registered. Face recognition will be updated.";
         } else {
             try {
                 $stmt = db()->prepare('INSERT INTO users (name,email,password,role,approved) VALUES (?,?,?,?,?)');
@@ -219,7 +214,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="face-capture-section text-center">
                                 <h5 class="mb-3">Set Up Face Recognition</h5>
                                 <p class="text-muted mb-4">Please look at the camera to capture your face for login.</p>
-                                <button type="button" class="btn btn-primary btn-lg" id="captureFaceBtn">
+                                <div id="modelLoadingStatus" class="mb-3">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Loading face recognition models...
+                                </div>
+                                <button type="button" class="btn btn-primary btn-lg" id="captureFaceBtn" disabled>
                                     <i class="fas fa-camera me-2"></i>Capture Face
                                 </button>
                                 <div id="faceCaptureStatus" class="mt-3"></div>
@@ -356,15 +354,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Load face-api models
-        Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewohacks/face-api.js@master/weights'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewohacks/face-api.js@master/weights'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewohacks/face-api.js@master/weights')
-        ]).then(() => {
-            console.log('Face API models loaded');
-        }).catch(err => {
-            console.error('Error loading face API models:', err);
-        });
+        let modelsLoaded = false;
+        const modelLoadingStatus = document.getElementById('modelLoadingStatus');
+        const captureFaceBtn = document.getElementById('captureFaceBtn');
+
+        async function loadModels(retryCount = 0) {
+            try {
+                modelLoadingStatus.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading face recognition models...';
+                const MODEL_URL = 'https://raw.githubusercontent.com/mushtaq314/attendance-project-PHP/main/weights/';
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                modelsLoaded = true;
+                modelLoadingStatus.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>Models loaded successfully';
+                captureFaceBtn.disabled = false;
+                console.log('Face API models loaded');
+            } catch (err) {
+                console.error('Error loading face API models:', err);
+                if (retryCount < 2) {
+                    modelLoadingStatus.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i>Retrying model load...';
+                    setTimeout(() => loadModels(retryCount + 1), 2000);
+                } else {
+                    modelLoadingStatus.innerHTML = '<i class="fas fa-times-circle text-danger me-2"></i>Failed to load models. Please refresh the page.';
+                    alert('Failed to load face recognition models. Please check your internet connection and refresh the page.');
+                }
+            }
+        }
+
+        loadModels();
 
         // Additional face capture functionality
         let regStream = null;
@@ -395,6 +414,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         regFaceCaptureBtn.addEventListener('click', async () => {
+            if (!modelsLoaded) {
+                alert('Face recognition models are still loading. Please wait a moment and try again.');
+                return;
+            }
+
             if (!regStream) {
                 alert('Camera not active. Please try again.');
                 return;
@@ -417,11 +441,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     return;
                 }
 
-                // Save descriptor to server
+                // Capture image from video
+                const canvas = regFaceCanvas;
+                const ctx = canvas.getContext('2d');
+                canvas.width = regFaceVideo.videoWidth;
+                canvas.height = regFaceVideo.videoHeight;
+                ctx.drawImage(regFaceVideo, 0, 0, canvas.width, canvas.height);
+                const imageData = canvas.toDataURL('image/png');
+
+                // Save descriptor and image to server
                 const response = await fetch('/attendance-project/public/api/save_descriptor.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: <?php echo isset($user_id) ? $user_id : 'null'; ?>, descriptor: Array.from(detection.descriptor) })
+                    body: JSON.stringify({
+                        user_id: <?php echo isset($user_id) ? $user_id : 'null'; ?>,
+                        descriptor: Array.from(detection.descriptor),
+                        image: imageData
+                    })
                 });
 
                 const data = await response.json();
@@ -430,7 +466,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     alert('Face captured and saved successfully! You can now login with face recognition.');
                     window.location.href = '/attendance-project/public/auth/login.php?registered=1';
                 } else {
-                    alert('Failed to save face descriptor. Please try again.');
+                    alert('Failed to save face data. Please try again.');
                 }
 
             } catch (err) {

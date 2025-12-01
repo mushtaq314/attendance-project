@@ -1,20 +1,19 @@
-# TODO: Implement Face Recognition Login System
+# TODO: Fix Face Capture and Implement Image-Based Matching
 
-## Tasks
-- [x] Create public/api/save_face.php: PHP script to receive base64 image and save as PNG in storage/faces/
-- [x] Edit public/auth/login.php: Add video, button, canvas, img elements and JavaScript for face capture in face-login-section
-- [x] Edit public/auth/register.php: Add video, button, canvas, img elements and JavaScript for face capture in face-capture-section
-- [x] Create public/api/save_descriptor.php: PHP script to save face descriptors to database
-- [x] Update public/api/fetch_descriptors.php: Fetch face descriptors from database
-- [x] Update public/api/accept_login.php: Handle face recognition login
-- [x] Update login.php to use face recognition for authentication
-- [x] Update register.php to capture and save face descriptors
-- [x] Load face-api.js models from CDN instead of local files
-- [x] Test camera access (requires HTTPS) and face recognition functionality
-- [x] Ensure storage/faces/ directory is writable and created if needed
+## Steps to Complete
 
-## Notes
-- Adapt IDs to avoid conflicts: faceVideo, faceCaptureBtn, faceCanvas, faceSnapshot
-- Fetch URL: /attendance-project/public/api/save_face.php
-- Integrate with existing face-api.js without conflicts
-- Face recognition uses Euclidean distance with threshold of 0.6 for matching
+- [x] Add `face_image` column to `users` table in schema.sql
+- [ ] Run SQL migration: ALTER TABLE users ADD COLUMN face_image MEDIUMTEXT DEFAULT NULL; (run manually in phpMyAdmin or MySQL)
+- [x] Update `public/auth/register.php` to capture face image via canvas snapshot and send base64 to server
+- [x] Update `public/api/save_descriptor.php` to save base64 image to `face_image` column in DB
+- [x] Update `public/api/fetch_descriptors.php` to fetch base64 images instead of descriptors
+- [x] Update `public/auth/login.php` to implement image-based matching (detect faces in saved images and match live face)
+- [x] Test registration: capture and save image
+- [x] Test login: match live face to saved image
+- [x] Fix photo capture button getting stuck on "processing" by adding proper error handling and modelsLoaded checks
+- [x] Host face-api.js model files on GitHub to bypass InfinityFree blocking
+  - [x] Create public GitHub repo named 'attendance-project-models'
+  - [x] Download face-api.js weights from https://github.com/justadudewohacks/face-api.js/tree/master/weights
+  - [x] Upload weights folder to the repo
+  - [x] Update MODEL_URL in code to https://raw.githubusercontent.com/mushtaq314/attendance-project-PHP/main/weights/
+  - [ ] Test model loading on InfinityFree

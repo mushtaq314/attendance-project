@@ -239,7 +239,10 @@ if (isset($_GET['registered'])) {
 
 
                         <div class="face-login-section">
-                            <button type="button" class="btn btn-face-login" id="faceLoginBtn">
+                            <div id="modelLoadingStatus" class="mb-3">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Loading face recognition models...
+                            </div>
+                            <button type="button" class="btn btn-face-login" id="faceLoginBtn" disabled>
                                 <i class="fas fa-camera me-2"></i>Login with Face Recognition
                             </button>
 
@@ -284,15 +287,36 @@ if (isset($_GET['registered'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Load face-api models
-        Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights')
-        ]).then(() => {
-            console.log('Face API models loaded');
-        }).catch(err => {
-            console.error('Error loading face API models:', err);
-        });
+        let modelsLoaded = false;
+        const modelLoadingStatus = document.getElementById('modelLoadingStatus');
+        const faceLoginBtn = document.getElementById('faceLoginBtn');
+
+        async function loadModels(retryCount = 0) {
+            try {
+                modelLoadingStatus.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading face recognition models...';
+                const MODEL_URL = 'https://raw.githubusercontent.com/mushtaq314/attendance-project-models/main/weights/';
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                modelsLoaded = true;
+                modelLoadingStatus.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>Models loaded successfully';
+                faceLoginBtn.disabled = false;
+                console.log('Face API models loaded');
+            } catch (err) {
+                console.error('Error loading face API models:', err);
+                if (retryCount < 2) {
+                    modelLoadingStatus.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i>Retrying model load...';
+                    setTimeout(() => loadModels(retryCount + 1), 2000);
+                } else {
+                    modelLoadingStatus.innerHTML = '<i class="fas fa-times-circle text-danger me-2"></i>Failed to load models. Please refresh the page.';
+                    alert('Failed to load face recognition models. Please check your internet connection and refresh the page.');
+                }
+            }
+        }
+
+        loadModels();
 
         // Face login functionality
         document.getElementById('faceLoginBtn').addEventListener('click', function() {
@@ -358,6 +382,11 @@ if (isset($_GET['registered'])) {
         }
 
         faceCaptureBtn.addEventListener('click', async () => {
+            if (!modelsLoaded) {
+                alert('Face recognition models are still loading. Please wait a moment and try again.');
+                return;
+            }
+
             if (!stream) {
                 alert('Camera not active. Please try again.');
                 return;
@@ -380,7 +409,7 @@ if (isset($_GET['registered'])) {
                     return;
                 }
 
-                // Fetch stored face descriptors
+                // Fetch stored face images
                 const response = await fetch('/attendance-project/public/api/fetch_descriptors.php');
                 const users = await response.json();
 
@@ -389,11 +418,23 @@ if (isset($_GET['registered'])) {
                 let minDistance = Infinity;
 
                 for (const user of users) {
-                    if (user.descriptor) {
-                        const distance = faceapi.euclideanDistance(detection.descriptor, user.descriptor);
-                        if (distance < 0.6 && distance < minDistance) { // Threshold for matching
-                            minDistance = distance;
-                            matchedUser = user;
+                    if (user.image) {
+                        // Load image from base64
+                        const img = new Image();
+                        img.src = user.image;
+                        await new Promise(resolve => img.onload = resolve);
+
+                        // Detect face in stored image
+                        const storedDetection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+
+                        if (storedDetection) {
+                            const distance = faceapi.euclideanDistance(detection.descriptor, storedDetection.descriptor);
+                            if (distance < 0.6 && distance < minDistance) { // Threshold for matching
+                                minDistance = distance;
+                                matchedUser = user;
+                            }
                         }
                     }
                 }

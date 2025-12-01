@@ -18,8 +18,8 @@ window.captureDescriptorAndSend = async function(userId) {
 };
 
 (async function(){
-  // load models from CDN
-  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+  // load models from GitHub-hosted weights
+  const MODEL_URL = 'https://raw.githubusercontent.com/mushtaq314/attendance-project-PHP/main/weights/';
   try {
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
     await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);

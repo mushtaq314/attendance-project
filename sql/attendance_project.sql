@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 13, 2025 at 09:49 PM
+-- Generation Time: Nov 26, 2025 at 07:09 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -110,14 +110,6 @@ CREATE TABLE `posts` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `posts`
---
-
-INSERT INTO `posts` (`id`, `user_id`, `title`, `body`, `visible_to`, `created_at`) VALUES
-(1, 1, 'Team Collaboration Tips', 'Communicate clearly with your team members and update task notes regularly. Collaboration improves project efficiency and reduces confusion.', 'all', '2025-11-12 17:55:11'),
-(2, 8, 'Monthly Performance Review', 'Managers will review employee performance on the last Friday of every month. Please complete all pending tasks before the review date.', 'all', '2025-11-12 21:31:52');
-
 -- --------------------------------------------------------
 
 --
@@ -135,6 +127,7 @@ CREATE TABLE `users` (
   `status` enum('pending','approved','rejected','active') DEFAULT 'pending',
   `twofa_secret` varchar(255) DEFAULT NULL,
   `face_descriptor` mediumtext DEFAULT NULL,
+  `face_image` mediumtext DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -142,17 +135,8 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `role`, `approved`, `status`, `twofa_secret`, `face_descriptor`, `created_at`) VALUES
-(1, 'System Administrator', 'admin@example.com', '$2y$10$YBnRh0gzoDnjN6HbgFx9JeiA2RPFF8xOuNJNEbnBj3nibEnpKOnCG', NULL, 'admin', 1, 'active', NULL, NULL, '2025-11-12 00:21:47'),
-(2, 'Mushtaq S', 'mushtaqshaikh314@gmail.com', '$2y$10$9xf7JY0giZhZRc3IAcOOMey3JYqYODnPd15PVxrBjCIqaTMnpgIfi', NULL, 'employee', 1, 'pending', NULL, NULL, '2025-11-12 00:27:25'),
-(3, 'Shaikh M', 'test@test.com', '$2y$10$XbhnQyyKOUcIxRZeWvA7DuYUHjbr9314Mw5iU1B.1MNpmIvZvdo5S', NULL, 'employee', 1, 'approved', NULL, NULL, '2025-11-12 17:56:39'),
-(6, 'Abrar S', 'abc@abc.com', NULL, NULL, 'employee', 1, 'pending', NULL, NULL, '2025-11-12 18:57:01'),
-(8, 'Mushtaq S', 'admin@123.com', '$2y$10$bxoGq6netKq3B7gdnxiQUuDt3iuI4eu8HJd/7DKBUfcIpKKk1Y1nK', NULL, 'admin', 1, 'approved', NULL, NULL, '2025-11-12 19:39:08'),
-(9, 'aa', 'a@123.com', NULL, NULL, 'employee', 0, 'pending', NULL, NULL, '2025-11-13 16:11:47'),
-(10, 'aa', 'aa22@qw.com', NULL, NULL, 'employee', 0, 'pending', NULL, NULL, '2025-11-13 16:14:42'),
-(11, 'sa', 'sa@we.com', NULL, NULL, 'employee', 0, 'pending', NULL, NULL, '2025-11-13 16:32:55'),
-(12, 'as', 'ax@as.com', NULL, NULL, 'employee', 0, 'pending', NULL, NULL, '2025-11-13 16:43:09'),
-(13, 'Mushtaq S', 'creatives@ondirect.in', NULL, NULL, 'employee', 0, 'pending', NULL, NULL, '2025-11-13 18:56:31');
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `role`, `approved`, `status`, `twofa_secret`, `face_descriptor`, `face_image`, `created_at`) VALUES
+(1, 'Mushtaq S', 'admin@123.com', '$2y$10$I1/vYVgYR.aL2UP3S6Anr.5SXeQfpo0awH.bKCNsObJBaCZsPtQJe', NULL, 'admin', 1, 'approved', NULL, NULL, NULL, '2025-11-26 18:06:49');
 
 --
 -- Indexes for dumped tables
@@ -244,13 +228,13 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `posts`
 --
 ALTER TABLE `posts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables
